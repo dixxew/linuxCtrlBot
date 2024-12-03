@@ -17,7 +17,7 @@
     public static CommandType GetCommandType(string input)
     {
         if (input.ToLower() == "/adduser" || input.ToLower().StartsWith("/createvpnconfig"))
-            return CommandType.AdminCommand;
+            return CommandType.UserCommand;
 
         return input.ToLower() switch
         {
