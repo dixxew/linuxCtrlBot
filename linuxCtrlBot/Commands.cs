@@ -25,9 +25,9 @@ public static class Commands
         var role = Auth.GetUserRole(username);
         var messageText = update.Message.Text;
 
-        if (messageText.StartsWith("/createVpnConfig"))
+        if (messageText.StartsWith("/createvpnconfig"))
         {
-            if (!Auth.HasAccessToCommand(username, "/createVpnConfig"))
+            if (!Auth.HasAccessToCommand(username, "/createvpnconfig"))
             {
                 await botClient.SendTextMessageAsync(chatId, "У вас нет прав для выполнения этой команды.");
                 return;
@@ -36,7 +36,7 @@ public static class Commands
             var parts = messageText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
             if (parts.Length != 2)
             {
-                await botClient.SendTextMessageAsync(chatId, "Использование: /createVpnConfig {name}");
+                await botClient.SendTextMessageAsync(chatId, "Использование: /createvpnconfig {name}");
                 return;
             }
 

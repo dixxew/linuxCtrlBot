@@ -38,10 +38,10 @@ class Program
         // Команды для роли "user"
         var userCommands = new List<BotCommand>
     {
-        new BotCommand { Command = "/ip_a", Description = "Показать IP адреса" },
+        new BotCommand { Command = "/ipa", Description = "Показать IP адреса" }, // Убрано подчёркивание
         new BotCommand { Command = "/speedtest", Description = "Тест скорости интернета" },
         new BotCommand { Command = "/ls", Description = "Показать файлы в /root/" },
-        new BotCommand { Command = "/createVpnConfig", Description = "Создать VPN конфиг" }
+        new BotCommand { Command = "/createvpnconfig", Description = "Создать VPN конфиг" } // Убраны пробелы для консистентности
     };
 
         // Команды для роли "admin"
@@ -56,5 +56,6 @@ class Program
         // Устанавливаем команды для администраторов
         await botClient.SetMyCommandsAsync(adminCommands, new BotCommandScopeAllPrivateChats());
     }
+
 
 }
