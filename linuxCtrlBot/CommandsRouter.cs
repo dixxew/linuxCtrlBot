@@ -3,43 +3,35 @@
     public static string ParseCommand(string input)
     {
         if (input.StartsWith("/createVpnConfig"))
-            return "createVpnConfig";
+            return $"echo '1\n{input.Split(' ')[1]}' | /root/openvpn-install.sh";
 
         return input.ToLower() switch
         {
-            "/ip a" => MapCommand(UserCommands.IpA),
-            "/speedtest" => MapCommand(UserCommands.Speedtest),
-            "/ls" => MapCommand(UserCommands.Ls),
-            "/adduser" => MapCommand(AdminCommands.AddUser),
+            "/ip a" => "ip a",
+            "/speedtest" => "speedtest-cli",
+            "/ls" => "ls /root/",
             _ => null
         };
     }
 
-    private static string MapCommand(UserCommands command) =>
-        command switch
-        {
-            UserCommands.IpA => "ip a",
-            UserCommands.Speedtest => "speedtest-cli",
-            UserCommands.Ls => "ls /root/",
-            
-            _ => null
-        };
+    public static CommandType GetCommandType(string input)
+    {
+        if (input.ToLower() == "/adduser" || input.ToLower().StartsWith("/createVpnConfig"))
+            return CommandType.AdminCommand;
 
-    private static string MapCommand(AdminCommands command) =>
-        command switch
+        return input.ToLower() switch
         {
-            AdminCommands.AddUser => null, // Нет привязки к bash-команде, обработка на уровне логики
-            _ => null
+            "/ip a" => CommandType.UserCommand,
+            "/speedtest" => CommandType.UserCommand,
+            "/ls" => CommandType.UserCommand,
+            _ => CommandType.Unknown
         };
-}
-public enum UserCommands
-{
-    IpA,
-    Speedtest,
-    Ls
+    }
 }
 
-public enum AdminCommands
+public enum CommandType
 {
-    AddUser
+    UserCommand,
+    AdminCommand,
+    Unknown
 }

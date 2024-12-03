@@ -1,4 +1,6 @@
-﻿public static class Auth
+﻿using System.Data;
+
+public static class Auth
 {
     private static readonly Dictionary<string, string> UserRoles = new();
     private const string RolesFilePath = "user_roles.txt";
@@ -26,31 +28,17 @@
     public static string GetUserRole(string username) =>
         UserRoles.TryGetValue(username, out string role) ? role : "unknown";
 
-    public static bool HasAccessToCommand(string username, string input)
+    public static bool HasAccessToCommand(string username, string command)
     {
         string role = GetUserRole(username);
+        var commandType = CommandsRouter.GetCommandType(command);
 
-        // Проверяем команду пользователя
-        if (ParseUserCommand(input, out var userCommand))
+        return role switch
         {
-            return role switch
-            {
-                "admin" => true, // Админ имеет доступ ко всем пользовательским командам
-                "user" => userCommand == UserCommands.IpA ||
-                          userCommand == UserCommands.Ls ||
-                          userCommand == UserCommands.Speedtest ||
-                          input.StartsWith("/createVpnConfig"),
-                _ => false
-            };
-        }
-
-        // Проверяем команду администратора
-        if (ParseAdminCommand(input, out var adminCommand))
-        {
-            return role == "admin"; // Только администратор имеет доступ к своим командам
-        }
-
-        return false;
+            "admin" => true, // Админ имеет доступ ко всем командам
+            "user" => commandType == CommandType.UserCommand, // Пользователь имеет доступ только к пользовательским командам
+            _ => false
+        };
     }
 
     public static bool AddUser(string username, string role)
@@ -68,27 +56,4 @@
 
         return true;
     }
-
-    private static bool ParseUserCommand(string input, out UserCommands command)
-    {
-        command = input.ToLower() switch
-        {
-            "/ip a" => UserCommands.IpA,
-            "/speedtest" => UserCommands.Speedtest,
-            "/ls" => UserCommands.Ls,
-            _ => (UserCommands)(-1)
-        };
-        return Enum.IsDefined(typeof(UserCommands), command);
-    }
-
-    private static bool ParseAdminCommand(string input, out AdminCommands command)
-    {
-        command = input.ToLower() switch
-        {
-            "/adduser" => AdminCommands.AddUser,
-            _ => (AdminCommands)(-1)
-        };
-        return Enum.IsDefined(typeof(AdminCommands), command);
-    }
-
 }
