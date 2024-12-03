@@ -45,7 +45,63 @@ public static class Commands
             return;
         }
 
-        // Остальные команды...
+        // Обработка админ-команды добавления пользователя
+        if (messageText.StartsWith("/adduser"))
+        {
+            if (role != "admin")
+            {
+                await botClient.SendTextMessageAsync(chatId, "У вас нет прав для выполнения этой команды.");
+                return;
+            }
+
+            var parts = messageText.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length != 3)
+            {
+                await botClient.SendTextMessageAsync(chatId, "Использование: /adduser <username> <role>");
+                return;
+            }
+
+            string newUsername = parts[1];
+            string newRole = parts[2];
+
+            if (Auth.AddUser(newUsername, newRole))
+            {
+                await botClient.SendTextMessageAsync(chatId, $"Пользователь {newUsername} добавлен с ролью {newRole}.");
+            }
+            else
+            {
+                await botClient.SendTextMessageAsync(chatId, "Ошибка добавления пользователя. Возможно, он уже существует или роль неверна.");
+            }
+
+            return;
+        }
+
+        // Если это команда bash
+        if (messageText.StartsWith("/"))
+        {
+            string bashCommand = CommandsRouter.ParseCommand(messageText);
+            if (bashCommand != null)
+            {
+                if (Auth.HasAccessToCommand(username, messageText))
+                {
+                    string output = ExecuteBash.RunCommand(bashCommand);
+                    await botClient.SendTextMessageAsync(chatId, $"Вывод команды {messageText}:\n{output}");
+                }
+                else
+                {
+                    await botClient.SendTextMessageAsync(chatId, "У вас нет прав для выполнения этой команды.");
+                }
+            }
+            else
+            {
+                await botClient.SendTextMessageAsync(chatId, "Неизвестная команда.");
+            }
+        }
+        else
+        {
+            // Обработка обычного текста или других команд
+            await botClient.SendTextMessageAsync(chatId, "Простое сообщение обработано.");
+        }
     }
     public static Task HandleErrorAsync(ITelegramBotClient botClient, Exception exception, CancellationToken cancellationToken)
     {

@@ -50,6 +50,21 @@
 
         return false;
     }
+    public static bool AddUser(string username, string role)
+    {
+        if (UserRoles.ContainsKey(username) || (role != "admin" && role != "user"))
+        {
+            return false; // Пользователь уже существует или роль недопустима
+        }
+
+        // Добавляем пользователя в словарь
+        UserRoles[username] = role;
+
+        // Обновляем файл
+        File.AppendAllText(RolesFilePath, $"{username} {role}{Environment.NewLine}");
+
+        return true;
+    }
 
     private static bool ParseUserCommand(string input, out UserCommands command)
     {
