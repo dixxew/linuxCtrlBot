@@ -118,21 +118,21 @@ public static class Commands
 
     private static async Task CreateVpnConfig(ITelegramBotClient botClient, long chatId, string name)
     {
-        string scriptPath = "/root/openvpn-install.sh";
+        string expectScriptPath = "/root/openvpn-auto.exp";
         string configPath = $"/root/{name}.ovpn";
         string guidePath = "/root/ovpn-stunnel-guide.zip";
 
         try
         {
-            Console.WriteLine($"[INFO] Начинаю выполнение скрипта для клиента {name}");
+            Console.WriteLine($"[INFO] Начинаю выполнение `expect`-скрипта для клиента {name}");
 
+            // Настройка и запуск процесса
             var process = new System.Diagnostics.Process
             {
                 StartInfo = new System.Diagnostics.ProcessStartInfo
                 {
-                    FileName = "/bin/bash",
-                    Arguments = $"-c \"{scriptPath}\"",
-                    RedirectStandardInput = true,
+                    FileName = "expect",
+                    Arguments = $"{expectScriptPath} {name}",
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -142,21 +142,15 @@ public static class Commands
 
             process.Start();
 
-            Console.WriteLine("[INFO] Скрипт запущен. Ожидаю запроса 'Option:'...");
+            Console.WriteLine("[INFO] `expect`-скрипт запущен. Читаю вывод...");
 
-            bool optionRequested = false;
-
-            // Читаем вывод в реальном времени
+            // Логирование вывода
             var outputTask = Task.Run(async () =>
             {
                 string line;
                 while ((line = await process.StandardOutput.ReadLineAsync()) != null)
                 {
                     Console.WriteLine($"[OUTPUT] {line}");
-                    if (line.Contains("Option:"))
-                    {
-                        optionRequested = true;
-                    }
                 }
             });
 
@@ -169,42 +163,30 @@ public static class Commands
                 }
             });
 
-            // Ждём появления текста "Option:"
-            while (!optionRequested)
-            {
-                await Task.Delay(100); // Небольшая пауза для проверки
-            }
-
-            Console.WriteLine("[INFO] Запрос 'Option:' найден. Передаю выбор...");
-
-            // Передаём данные в скрипт
-            using (var writer = process.StandardInput)
-            {
-                if (writer.BaseStream.CanWrite)
-                {
-                    await writer.WriteLineAsync("1"); // Выбираем "Add a new client"
-                    Console.WriteLine("[INFO] Передал выбор: Add a new client");
-
-                    await writer.WriteLineAsync(name); // Вводим имя клиента
-                    Console.WriteLine($"[INFO] Передал имя клиента: {name}");
-                }
-            }
-
-            Console.WriteLine("[INFO] Ожидаю завершения работы скрипта...");
+            // Ждём завершения процесса
             await Task.WhenAll(outputTask, errorTask);
             process.WaitForExit();
 
-            Console.WriteLine("[INFO] Скрипт завершён.");
-
-            if (!File.Exists(configPath))
+            if (process.ExitCode != 0)
             {
-                Console.WriteLine($"[ERROR] Файл {configPath} не найден.");
-                await botClient.SendTextMessageAsync(chatId, $"Ошибка: файл {configPath} не найден. Возможно, скрипт завершился с ошибкой.");
+                Console.WriteLine($"[ERROR] `expect`-скрипт завершился с кодом ошибки: {process.ExitCode}");
+                await botClient.SendTextMessageAsync(chatId, "Ошибка: `expect`-скрипт завершился с ошибкой. Проверьте настройки.");
                 return;
             }
 
-            Console.WriteLine($"[INFO] Файл {configPath} найден. Отправляю пользователю...");
+            Console.WriteLine("[INFO] `expect`-скрипт завершён.");
 
+            // Проверяем наличие файла конфигурации
+            if (!File.Exists(configPath))
+            {
+                Console.WriteLine($"[ERROR] Файл {configPath} не найден.");
+                await botClient.SendTextMessageAsync(chatId, $"Ошибка: файл {configPath} не найден. Проверьте, успешно ли завершился скрипт.");
+                return;
+            }
+
+            Console.WriteLine($"[INFO] Файл конфигурации {configPath} найден. Отправляю пользователю...");
+
+            // Отправляем конфиг и архив
             using (var configStream = File.OpenRead(configPath))
             using (var guideStream = File.OpenRead(guidePath))
             {
@@ -225,4 +207,5 @@ public static class Commands
             await botClient.SendTextMessageAsync(chatId, $"Ошибка при выполнении команды: {ex.Message}");
         }
     }
+
 }
