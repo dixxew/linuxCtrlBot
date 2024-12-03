@@ -30,11 +30,12 @@
     {
         string role = GetUserRole(username);
 
+        // Проверяем команду пользователя
         if (ParseUserCommand(input, out var userCommand))
         {
             return role switch
             {
-                "admin" => true,
+                "admin" => true, // Админ имеет доступ ко всем пользовательским командам
                 "user" => userCommand == UserCommands.IpA ||
                           userCommand == UserCommands.Ls ||
                           userCommand == UserCommands.Speedtest ||
@@ -43,13 +44,15 @@
             };
         }
 
+        // Проверяем команду администратора
         if (ParseAdminCommand(input, out var adminCommand))
         {
-            return role == "admin";
+            return role == "admin"; // Только администратор имеет доступ к своим командам
         }
 
         return false;
     }
+
     public static bool AddUser(string username, string role)
     {
         if (UserRoles.ContainsKey(username) || (role != "admin" && role != "user"))
