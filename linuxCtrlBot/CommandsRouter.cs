@@ -16,9 +16,15 @@
 
     public static CommandType GetCommandType(string input)
     {
-        if (input.ToLower() == "/adduser" || input.ToLower().StartsWith("/createvpnconfig"))
+        // Команда для администраторов
+        if (input.ToLower() == "/adduser")
+            return CommandType.AdminCommand;
+
+        // Команда для создания конфигурации, доступная всем
+        if (input.ToLower().StartsWith("/createvpnconfig"))
             return CommandType.UserCommand;
 
+        // Остальные пользовательские команды
         return input.ToLower() switch
         {
             "/ipa" => CommandType.UserCommand,
@@ -27,6 +33,7 @@
             _ => CommandType.Unknown
         };
     }
+
 }
 
 public enum CommandType
