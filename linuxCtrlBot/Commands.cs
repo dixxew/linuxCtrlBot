@@ -124,6 +124,8 @@ public static class Commands
 
         try
         {
+            Console.WriteLine($"[INFO] Начинаю выполнение скрипта для клиента {name}");
+
             // Настройка процесса
             var process = new System.Diagnostics.Process
             {
@@ -131,7 +133,7 @@ public static class Commands
                 {
                     FileName = "/bin/bash",
                     Arguments = $"-c \"{scriptPath}\"",
-                    RedirectStandardInput = true,  // Позволяет вводить данные в скрипт
+                    RedirectStandardInput = true,
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -141,26 +143,40 @@ public static class Commands
 
             process.Start();
 
+            Console.WriteLine("[INFO] Скрипт запущен, передаю ввод...");
+
             // Передаём данные в скрипт
             using (var writer = process.StandardInput)
             {
                 if (writer.BaseStream.CanWrite)
                 {
                     await writer.WriteLineAsync("1"); // Выбираем "Add a new client"
+                    Console.WriteLine("[INFO] Передал выбор: Add a new client");
+
                     await writer.WriteLineAsync(name); // Вводим имя клиента
+                    Console.WriteLine($"[INFO] Передал имя клиента: {name}");
                 }
             }
+
+            Console.WriteLine("[INFO] Ожидаю завершения работы скрипта...");
 
             // Ждём завершения процесса
             string output = await process.StandardOutput.ReadToEndAsync();
             string error = await process.StandardError.ReadToEndAsync();
             process.WaitForExit();
 
+            Console.WriteLine("[INFO] Скрипт завершён.");
+            Console.WriteLine($"[DEBUG] Output: {output}");
+            Console.WriteLine($"[DEBUG] Error: {error}");
+
             if (!File.Exists(configPath))
             {
+                Console.WriteLine($"[ERROR] Файл {configPath} не найден.");
                 await botClient.SendTextMessageAsync(chatId, $"Ошибка: файл {configPath} не найден. Возможно, скрипт завершился с ошибкой.\n{error}");
                 return;
             }
+
+            Console.WriteLine($"[INFO] Файл {configPath} найден. Отправляю пользователю...");
 
             // Отправляем конфиг и архив
             using (var configStream = File.OpenRead(configPath))
@@ -174,11 +190,15 @@ public static class Commands
                 await botClient.SendDocumentAsync(chatId, configFile);
                 await botClient.SendDocumentAsync(chatId, guideFile);
             }
+
+            Console.WriteLine("[INFO] Файлы успешно отправлены пользователю.");
         }
         catch (Exception ex)
         {
+            Console.WriteLine($"[ERROR] Ошибка при выполнении команды: {ex.Message}");
             await botClient.SendTextMessageAsync(chatId, $"Ошибка при выполнении команды: {ex.Message}");
         }
     }
+
 
 }
