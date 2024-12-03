@@ -1,23 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-
-public static class Auth
+﻿public static class Auth
 {
     private static readonly Dictionary<string, string> UserRoles = new();
+    private const string RolesFilePath = "user_roles.txt";
 
     public static void LoadUserRoles()
     {
-        const string rolesFilePath = "user_roles.txt";
-
-        if (!File.Exists(rolesFilePath))
+        if (!File.Exists(RolesFilePath))
         {
-            File.WriteAllText(rolesFilePath, "# user roles file\n# Format: username role (e.g., user1 admin)\n");
-            Console.WriteLine($"Roles file created at {rolesFilePath}. Add users before running.");
+            File.WriteAllText(RolesFilePath, "# user roles file\n# Format: username role (e.g., user1 admin)\n");
+            Console.WriteLine($"Roles file created at {RolesFilePath}. Add users before running.");
             Environment.Exit(0);
         }
 
-        foreach (var line in File.ReadAllLines(rolesFilePath))
+        foreach (var line in File.ReadAllLines(RolesFilePath))
         {
             if (line.StartsWith("#") || string.IsNullOrWhiteSpace(line)) continue;
             var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
@@ -31,15 +26,51 @@ public static class Auth
     public static string GetUserRole(string username) =>
         UserRoles.TryGetValue(username, out string role) ? role : "unknown";
 
-    public static bool HasAccessToCommand(string username, string command)
+    public static bool HasAccessToCommand(string username, string input)
     {
         string role = GetUserRole(username);
-        // Пример ограничения доступа по ролям
-        return role switch
+
+        if (ParseUserCommand(input, out var userCommand))
         {
-            "admin" => true,
-            "user" => command == "/ip a" || command == "/ls",
-            _ => false
-        };
+            return role switch
+            {
+                "admin" => true,
+                "user" => userCommand == UserCommands.IpA ||
+                          userCommand == UserCommands.Ls ||
+                          userCommand == UserCommands.Speedtest ||
+                          input.StartsWith("/createVpnConfig"),
+                _ => false
+            };
+        }
+
+        if (ParseAdminCommand(input, out var adminCommand))
+        {
+            return role == "admin";
+        }
+
+        return false;
     }
+
+    private static bool ParseUserCommand(string input, out UserCommands command)
+    {
+        command = input.ToLower() switch
+        {
+            "/ip a" => UserCommands.IpA,
+            "/speedtest" => UserCommands.Speedtest,
+            "/ls" => UserCommands.Ls,
+            _ => (UserCommands)(-1)
+        };
+        return Enum.IsDefined(typeof(UserCommands), command);
+    }
+
+    private static bool ParseAdminCommand(string input, out AdminCommands command)
+    {
+        command = input.ToLower() switch
+        {
+            "/adduser" => AdminCommands.AddUser,
+            _ => (AdminCommands)(-1)
+        };
+        return Enum.IsDefined(typeof(AdminCommands), command);
+    }
+
 }
