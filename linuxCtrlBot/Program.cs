@@ -11,7 +11,7 @@ class Program
 
     static async Task Main(string[] args)
     {
-        string botToken = "YOUR_BOT_TOKEN";
+        string botToken = "7879607825:AAGGXGU5RHm7U5QKSfHxqx-UuJMILZF_GuQ";
         _botClient = new TelegramBotClient(botToken);
 
         Auth.LoadUserRoles();
