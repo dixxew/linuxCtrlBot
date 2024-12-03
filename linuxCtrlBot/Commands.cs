@@ -126,7 +126,6 @@ public static class Commands
         {
             Console.WriteLine($"[INFO] Начинаю выполнение скрипта для клиента {name}");
 
-            // Настройка процесса
             var process = new System.Diagnostics.Process
             {
                 StartInfo = new System.Diagnostics.ProcessStartInfo
@@ -143,7 +142,40 @@ public static class Commands
 
             process.Start();
 
-            Console.WriteLine("[INFO] Скрипт запущен, передаю ввод...");
+            Console.WriteLine("[INFO] Скрипт запущен. Ожидаю запроса 'Option:'...");
+
+            bool optionRequested = false;
+
+            // Читаем вывод в реальном времени
+            var outputTask = Task.Run(async () =>
+            {
+                string line;
+                while ((line = await process.StandardOutput.ReadLineAsync()) != null)
+                {
+                    Console.WriteLine($"[OUTPUT] {line}");
+                    if (line.Contains("Option:"))
+                    {
+                        optionRequested = true;
+                    }
+                }
+            });
+
+            var errorTask = Task.Run(async () =>
+            {
+                string line;
+                while ((line = await process.StandardError.ReadLineAsync()) != null)
+                {
+                    Console.WriteLine($"[ERROR] {line}");
+                }
+            });
+
+            // Ждём появления текста "Option:"
+            while (!optionRequested)
+            {
+                await Task.Delay(100); // Небольшая пауза для проверки
+            }
+
+            Console.WriteLine("[INFO] Запрос 'Option:' найден. Передаю выбор...");
 
             // Передаём данные в скрипт
             using (var writer = process.StandardInput)
@@ -158,29 +190,10 @@ public static class Commands
                 }
             }
 
-            // Читаем вывод и логируем
-            var outputTask = Task.Run(async () =>
-            {
-                string line;
-                while ((line = await process.StandardOutput.ReadLineAsync()) != null)
-                {
-                    Console.WriteLine($"[OUTPUT] {line}");
-                }
-            });
-
-            var errorTask = Task.Run(async () =>
-            {
-                string line;
-                while ((line = await process.StandardError.ReadLineAsync()) != null)
-                {
-                    Console.WriteLine($"[ERROR] {line}");
-                }
-            });
-
             Console.WriteLine("[INFO] Ожидаю завершения работы скрипта...");
             await Task.WhenAll(outputTask, errorTask);
-
             process.WaitForExit();
+
             Console.WriteLine("[INFO] Скрипт завершён.");
 
             if (!File.Exists(configPath))
@@ -192,7 +205,6 @@ public static class Commands
 
             Console.WriteLine($"[INFO] Файл {configPath} найден. Отправляю пользователю...");
 
-            // Отправляем конфиг и архив
             using (var configStream = File.OpenRead(configPath))
             using (var guideStream = File.OpenRead(guidePath))
             {
@@ -213,7 +225,4 @@ public static class Commands
             await botClient.SendTextMessageAsync(chatId, $"Ошибка при выполнении команды: {ex.Message}");
         }
     }
-
-
-
 }
