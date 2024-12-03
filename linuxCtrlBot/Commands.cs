@@ -158,21 +158,35 @@ public static class Commands
                 }
             }
 
+            // Читаем вывод и логируем
+            var outputTask = Task.Run(async () =>
+            {
+                string line;
+                while ((line = await process.StandardOutput.ReadLineAsync()) != null)
+                {
+                    Console.WriteLine($"[OUTPUT] {line}");
+                }
+            });
+
+            var errorTask = Task.Run(async () =>
+            {
+                string line;
+                while ((line = await process.StandardError.ReadLineAsync()) != null)
+                {
+                    Console.WriteLine($"[ERROR] {line}");
+                }
+            });
+
             Console.WriteLine("[INFO] Ожидаю завершения работы скрипта...");
+            await Task.WhenAll(outputTask, errorTask);
 
-            // Ждём завершения процесса
-            string output = await process.StandardOutput.ReadToEndAsync();
-            string error = await process.StandardError.ReadToEndAsync();
             process.WaitForExit();
-
             Console.WriteLine("[INFO] Скрипт завершён.");
-            Console.WriteLine($"[DEBUG] Output: {output}");
-            Console.WriteLine($"[DEBUG] Error: {error}");
 
             if (!File.Exists(configPath))
             {
                 Console.WriteLine($"[ERROR] Файл {configPath} не найден.");
-                await botClient.SendTextMessageAsync(chatId, $"Ошибка: файл {configPath} не найден. Возможно, скрипт завершился с ошибкой.\n{error}");
+                await botClient.SendTextMessageAsync(chatId, $"Ошибка: файл {configPath} не найден. Возможно, скрипт завершился с ошибкой.");
                 return;
             }
 
@@ -199,6 +213,7 @@ public static class Commands
             await botClient.SendTextMessageAsync(chatId, $"Ошибка при выполнении команды: {ex.Message}");
         }
     }
+
 
 
 }
