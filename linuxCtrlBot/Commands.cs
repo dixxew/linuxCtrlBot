@@ -124,13 +124,14 @@ public static class Commands
 
         try
         {
-            // Запускаем скрипт
+            // Настройка процесса
             var process = new System.Diagnostics.Process
             {
                 StartInfo = new System.Diagnostics.ProcessStartInfo
                 {
                     FileName = "/bin/bash",
-                    Arguments = $"-c \"echo '1\n{name}\n' | {scriptPath}\"",
+                    Arguments = $"-c \"{scriptPath}\"",
+                    RedirectStandardInput = true,  // Позволяет вводить данные в скрипт
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     UseShellExecute = false,
@@ -139,17 +140,29 @@ public static class Commands
             };
 
             process.Start();
+
+            // Передаём данные в скрипт
+            using (var writer = process.StandardInput)
+            {
+                if (writer.BaseStream.CanWrite)
+                {
+                    await writer.WriteLineAsync("1"); // Выбираем "Add a new client"
+                    await writer.WriteLineAsync(name); // Вводим имя клиента
+                }
+            }
+
+            // Ждём завершения процесса
             string output = await process.StandardOutput.ReadToEndAsync();
             string error = await process.StandardError.ReadToEndAsync();
             process.WaitForExit();
 
             if (!File.Exists(configPath))
             {
-                await botClient.SendTextMessageAsync(chatId, $"Ошибка: файл {configPath} не найден. Возможно, скрипт завершился с ошибкой.");
+                await botClient.SendTextMessageAsync(chatId, $"Ошибка: файл {configPath} не найден. Возможно, скрипт завершился с ошибкой.\n{error}");
                 return;
             }
 
-            // Отправляем файл и архив
+            // Отправляем конфиг и архив
             using (var configStream = File.OpenRead(configPath))
             using (var guideStream = File.OpenRead(guidePath))
             {
@@ -167,4 +180,5 @@ public static class Commands
             await botClient.SendTextMessageAsync(chatId, $"Ошибка при выполнении команды: {ex.Message}");
         }
     }
+
 }
