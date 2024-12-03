@@ -8,7 +8,7 @@
         return input.ToLower() switch
         {
             "/ipa" => "ip a",
-            "/speedtest" => "speedtest-cli",
+            "/speedtest" => "speedtest",
             "/ls" => "ls /root/",
             _ => null
         };
