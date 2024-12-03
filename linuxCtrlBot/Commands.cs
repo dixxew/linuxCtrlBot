@@ -126,6 +126,14 @@ public static class Commands
         {
             Console.WriteLine($"[INFO] Начинаю выполнение `expect`-скрипта для клиента {name}");
 
+            // Проверка существования файла конфигурации
+            if (File.Exists(configPath))
+            {
+                Console.WriteLine($"[INFO] Конфигурация {configPath} уже существует. Операция отменена.");
+                await botClient.SendTextMessageAsync(chatId, $"Конфигурация с именем {name} уже существует. Пожалуйста, выберите другое имя.");
+                return;
+            }
+
             // Настройка и запуск процесса
             var process = new System.Diagnostics.Process
             {
